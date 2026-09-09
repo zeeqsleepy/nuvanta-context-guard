@@ -6,6 +6,7 @@ export interface FileInfo {
   name: string;
   extension: string;
   size: number;
+  tokens: number;
 }
 
 export async function scanDirectory(dirPath: string): Promise<FileInfo[]> {
@@ -25,6 +26,7 @@ export async function scanDirectory(dirPath: string): Promise<FileInfo[]> {
         name: entry.name,
         extension: path.extname(entry.name),
         size: stat.size,
+        tokens: Math.round(stat.size / 4),
       });
     }
   }

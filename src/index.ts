@@ -21,7 +21,7 @@ program
 
     console.log(`\nFiles found: ${files.length}`);
     for (const file of files) {
-      console.log(` ${file.path} (${file.size} bytes)`);
+      console.log(` ${file.path} (${file.size} bytes, ~${file.tokens} tokens)`);
     }
   });
 
