@@ -1,6 +1,32 @@
 import fs from "fs/promises";
 import path from "path";
 
+const IGNORED_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  ".next",
+  "build",
+  "coverage",
+  ".cache",
+]);
+
+const IGNORED_EXTENSIONS = new Set([
+  ".md",
+  ".lock",
+  ".env",
+  ".log",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".svg",
+  ".ico",
+  ".woff",
+  ".woff2",
+  ".ttf",
+]);
+
 export interface FileInfo {
   path: string;
   name: string;
@@ -17,9 +43,12 @@ export async function scanDirectory(dirPath: string): Promise<FileInfo[]> {
     const fullPath = path.join(dirPath, entry.name);
 
     if (entry.isDirectory()) {
+      if (IGNORED_DIRS.has(entry.name)) continue;
       const subFiles = await scanDirectory(fullPath);
       result.push(...subFiles);
     } else {
+      const ext = path.extname(entry.name);
+      if (IGNORED_EXTENSIONS.has(ext)) continue;
       const stat = await fs.stat(fullPath);
       result.push({
         path: fullPath,
