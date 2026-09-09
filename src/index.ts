@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { scanDirectory } from "./scanner/index.js";
 import { extractKeywords, scoreFile, scoreContent } from "./relevance/index.js";
 import { selectFiles } from "./budget/index.js";
+import { printReport } from "./output/index.js";
 import fs from "fs/promises";
 
 const program = new Command();
@@ -22,11 +23,6 @@ program
     const files = await scanDirectory(dirPath);
     const keywords = extractKeywords(options.task);
 
-    console.log(`Task: ${options.task}`);
-    console.log(`Keywords: ${keywords.join(", ")}`);
-    console.log(`Budget: ${budget} tokens`);
-    console.log(`Files found: ${files.length}\n`);
-
     const scored = [];
 
     for (const file of files) {
@@ -41,15 +37,15 @@ program
     scored.sort((a, b) => b.score - a.score);
 
     const selected = selectFiles(scored, budget);
-    const totalTokens = selected.reduce((sum, f) => sum + f.tokens, 0);
 
-    console.log(`Relevant files: ${scored.length}`);
-    console.log(`Selected: ${selected.length}`);
-    console.log(`Context: ${totalTokens} / ${budget} tokens\n`);
-
-    for (const file of selected) {
-      console.log(` [${file.score}] ${file.path} (~${file.tokens} tokens)`);
-    }
+    printReport({
+      task: options.task,
+      keywords,
+      budget,
+      totalFiles: files.length,
+      relevantFiles: scored.length,
+      selected,
+    });
   });
 
 program.parse();
