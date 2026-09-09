@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +14,8 @@
   "type": "module",
   "devDependencies": {
     "@types/node": "^26.5.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   },
   "dependencies": {
     "commander": "^15.0.0"
