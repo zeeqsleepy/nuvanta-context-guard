@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { scanDirectory } from "./scanner/index.js";
-import { extractKeywords, scoreFile } from "./relevance/index.js";
+import { extractKeywords, scoreFile, scoreContent } from "./relevance/index.js";
+import fs from "fs/promises";
 
 const program = new Command();
 
@@ -22,10 +23,18 @@ program
     console.log(`Keywords: ${keywords.join(", ")}`);
     console.log(`Files found: ${files.length}\n`);
 
-    const scored = files
-      .map((file) => ({ ...file, score: scoreFile(file.path, keywords) }))
-      .filter((file) => file.score > 0)
-      .sort((a, b) => b.score - a.score);
+    const scored = [];
+
+    for (const file of files) {
+      const content = await fs.readFile(file.path, "utf-8");
+      const score =
+        scoreFile(file.path, keywords) + scoreContent(content, keywords);
+      if (score > 0) {
+        scored.push({ ...file, score });
+      }
+    }
+
+    scored.sort((a, b) => b.score - a.score);
 
     console.log(`Relevant files: ${scored.length}`);
     for (const file of scored) {

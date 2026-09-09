@@ -32,3 +32,16 @@ export function scoreFile(filePath: string, keywords: string[]): number {
 
   return score;
 }
+
+export function scoreContent(content: string, keywords: string[]): number {
+  const normalizedContent = content.toLowerCase();
+  let score = 0;
+
+  for (const keyword of keywords) {
+    if (normalizedContent.includes(keyword)) {
+      score += 0.5;
+    }
+  }
+
+  return score;
+}
