@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { scanDirectory } from "./scanner/index.js";
 import { extractKeywords, scoreFile, scoreContent } from "./relevance/index.js";
+import { selectFiles } from "./budget/index.js";
 import fs from "fs/promises";
 
 const program = new Command();
@@ -15,12 +16,15 @@ program
   .description("Scan a project and find relevant files for a task")
   .argument("<path>", "Path to the project directory")
   .option("--task <task>", "The task you are working on")
+  .option("--budget <number>", "Max token budget", "10000")
   .action(async (dirPath, options) => {
+    const budget = parseInt(options.budget);
     const files = await scanDirectory(dirPath);
     const keywords = extractKeywords(options.task);
 
     console.log(`Task: ${options.task}`);
     console.log(`Keywords: ${keywords.join(", ")}`);
+    console.log(`Budget: ${budget} tokens`);
     console.log(`Files found: ${files.length}\n`);
 
     const scored = [];
@@ -36,8 +40,14 @@ program
 
     scored.sort((a, b) => b.score - a.score);
 
+    const selected = selectFiles(scored, budget);
+    const totalTokens = selected.reduce((sum, f) => sum + f.tokens, 0);
+
     console.log(`Relevant files: ${scored.length}`);
-    for (const file of scored) {
+    console.log(`Selected: ${selected.length}`);
+    console.log(`Context: ${totalTokens} / ${budget} tokens\n`);
+
+    for (const file of selected) {
       console.log(` [${file.score}] ${file.path} (~${file.tokens} tokens)`);
     }
   });
