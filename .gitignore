@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Enviroment variables
+.env
+
+# OS files
+.DS_Store     # Mac
+Thumbs.db     # Windows
+
+# Editor settings
+.vscode/
+.idea/

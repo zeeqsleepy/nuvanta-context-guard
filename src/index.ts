@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { scanDirectory } from "./scanner/index.js";
 
 const program = new Command();
 
@@ -12,9 +13,16 @@ program
   .description("Scan a project and find relevant files for a task")
   .argument("<path>", "Path to the project directory")
   .option("--task <task>", "The task you are working on")
-  .action((path, option) => {
-    console.log("Path:", path);
-    console.log("Task:", option.task);
+  .action(async (dirPath, options) => {
+    console.log(`Scanning: ${dirPath}`);
+    console.log(`Task: ${options.task}`);
+
+    const files = await scanDirectory(dirPath);
+
+    console.log(`\nFiles found: ${files.length}`);
+    for (const file of files) {
+      console.log(` ${file.path} (${file.size} bytes)`);
+    }
   });
 
 program.parse();
