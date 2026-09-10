@@ -1,19 +1,26 @@
 {
   "name": "nuvanta-context-guard",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.1.0",
+  "description": "A developer tool that identifies relevant project files for AI coding agents",
+  "main": "dist/index.js",
+  "bin": {
+    "nuvanta": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "node dist/index.js",
     "test": "vitest run --dir src",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "prepublishOnly": "npm run build && npm test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["ai", "context", "developer-tools", "cli"],
+  "author": "zeeqsleepy",
+  "license": "MIT",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.5.0",

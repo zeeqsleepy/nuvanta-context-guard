@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { Command } from "commander";
 import { scanDirectory } from "./scanner/index.js";
 import { extractKeywords, scoreFile, scoreContent } from "./relevance/index.js";
