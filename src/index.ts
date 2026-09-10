@@ -19,33 +19,43 @@ program
   .option("--task <task>", "The task you are working on")
   .option("--budget <number>", "Max token budget", "10000")
   .action(async (dirPath, options) => {
-    const budget = parseInt(options.budget);
-    const files = await scanDirectory(dirPath);
-    const keywords = extractKeywords(options.task);
+    try {
+      const budget = parseInt(options.budget);
+      const files = await scanDirectory(dirPath);
+      const keywords = extractKeywords(options.task);
 
-    const scored = [];
+      const scored = [];
 
-    for (const file of files) {
-      const content = await fs.readFile(file.path, "utf-8");
-      const score =
-        scoreFile(file.path, keywords) + scoreContent(content, keywords);
-      if (score > 0) {
-        scored.push({ ...file, score });
+      for (const file of files) {
+        const content = await fs.readFile(file.path, "utf-8");
+        const score =
+          scoreFile(file.path, keywords) + scoreContent(content, keywords);
+        if (score > 0) {
+          scored.push({ ...file, score });
+        }
       }
+
+      scored.sort((a, b) => b.score - a.score);
+      const selected = selectFiles(scored, budget);
+
+      printReport({
+        task: options.task,
+        keywords,
+        budget,
+        totalFiles: files.length,
+        relevantFiles: scored.length,
+        selected,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("ENOENT")) {
+        console.error(`\nError: Folder "${dirPath}" does not exist.\n`);
+      } else if (error instanceof Error) {
+        console.error(`\nError: ${error.message}\n`);
+      } else {
+        console.error("\nUnknown error.\n");
+      }
+      process.exit(1);
     }
-
-    scored.sort((a, b) => b.score - a.score);
-
-    const selected = selectFiles(scored, budget);
-
-    printReport({
-      task: options.task,
-      keywords,
-      budget,
-      totalFiles: files.length,
-      relevantFiles: scored.length,
-      selected,
-    });
   });
 
 program.parse();
