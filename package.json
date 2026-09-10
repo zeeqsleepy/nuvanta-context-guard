@@ -14,7 +14,12 @@
     "format": "prettier --write src/**/*.ts",
     "prepublishOnly": "npm run build && npm test"
   },
-  "keywords": ["ai", "context", "developer-tools", "cli"],
+  "keywords": [
+    "ai",
+    "context",
+    "developer-tools",
+    "cli"
+  ],
   "author": "zeeqsleepy",
   "license": "MIT",
   "type": "module",
@@ -31,6 +36,8 @@
     "vitest": "^5.0.0"
   },
   "dependencies": {
-    "commander": "^15.0.0"
+    "@google/generative-ai": "^0.24.1",
+    "commander": "^15.0.0",
+    "dotenv": "^17.4.2"
   }
 }

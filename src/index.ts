@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
+import "dotenv/config";
 import { Command } from "commander";
 import { scanDirectory } from "./scanner/index.js";
 import { extractKeywords, scoreFile, scoreContent } from "./relevance/index.js";
 import { selectFiles } from "./budget/index.js";
 import { printReport } from "./output/index.js";
+import { scoreFilesWithAI } from "./ai/index.js";
 import fs from "fs/promises";
 
 const program = new Command();
@@ -38,6 +40,18 @@ program
       }
 
       scored.sort((a, b) => b.score - a.score);
+
+      if (scored.length > 0) {
+        const candidates = scored.map((f) => f.path);
+        const aiScores = await scoreFilesWithAI(options.task, candidates);
+
+        for (const file of scored) {
+          file.score += aiScores[file.path] ?? 0;
+        }
+
+        scored.sort((a, b) => b.score - a.score);
+      }
+
       const selected = selectFiles(scored, budget);
 
       printReport({
