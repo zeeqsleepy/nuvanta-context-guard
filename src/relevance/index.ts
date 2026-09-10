@@ -1,3 +1,5 @@
+import path from "path";
+
 const STOP_WORDS = new Set([
   "fix",
   "add",
@@ -21,12 +23,16 @@ export function extractKeywords(task: string): string[] {
 }
 
 export function scoreFile(filePath: string, keywords: string[]): number {
-  const normalizedPath = filePath.toLowerCase();
+  const fileName = path.basename(filePath).toLowerCase();
+  const dirName = path.dirname(filePath).toLowerCase();
   let score = 0;
 
   for (const keyword of keywords) {
-    if (normalizedPath.includes(keyword)) {
-      score += 1;
+    if (fileName.includes(keyword)) {
+      score += 1.0;
+    }
+    if (dirName.includes(keyword)) {
+      score += 0.6;
     }
   }
 
