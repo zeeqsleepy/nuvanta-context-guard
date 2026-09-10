@@ -12,7 +12,7 @@ export interface ReportData {
 export function printReport(data: ReportData): void {
   const totalTokens = data.selected.reduce((sum, f) => sum + f.tokens, 0);
   const reduction = Math.round(
-    (1 - data.selected.length / data.totalFiles) * 100,
+    (1 - data.selected.length / data.totalFiles) * 100
   );
 
   console.log("\nNuvanta Context Guard");

@@ -6,15 +6,21 @@
   "scripts": {
     "build": "tsc",
     "dev": "node dist/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.5.0",
-    "typescript": "^7.0.2",
+    "eslint": "^10.10.0",
+    "prettier": "^3.9.6",
+    "typescript": "5.8",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^5.0.0"
   },
   "dependencies": {
