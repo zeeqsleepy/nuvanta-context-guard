@@ -1,6 +1,6 @@
 {
   "name": "nuvanta-context-guard",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A developer tool that identifies relevant project files for AI coding agents",
   "main": "dist/index.js",
   "bin": {
