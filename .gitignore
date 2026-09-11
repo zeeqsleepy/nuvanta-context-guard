@@ -4,13 +4,27 @@ node_modules/
 # Build output
 dist/
 
-# Enviroment variables
+# Environment variables
 .env
+.env.*
 
 # OS files
-.DS_Store     # Mac
-Thumbs.db     # Windows
+.DS_Store
+Thumbs.db
 
 # Editor settings
 .vscode/
 .idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# npm pack output
+*.tgz
