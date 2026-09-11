@@ -199,6 +199,70 @@ describe(".nuvantaignore", () => {
   });
 });
 
+// ─── .env variants ───────────────────────────────────────────────────────────
+
+describe(".env variant protection", () => {
+  const ENV_VARIANTS = [
+    ".env",
+    ".env.local",
+    ".env.production",
+    ".env.development",
+    ".env.test",
+  ];
+
+  for (const file of ENV_VARIANTS) {
+    it(`skips "${file}"`, async () => {
+      await writeFile(tmpDir, file, "SECRET=abc123");
+      const result = await scanProject(tmpDir);
+      expect(result).toEqual([]);
+    });
+  }
+});
+
+// ─── wildcard patterns in .nuvantaignore ─────────────────────────────────────
+
+describe(".nuvantaignore wildcard patterns", () => {
+  it("ignores files matching *.pem", async () => {
+    await writeFile(tmpDir, ".nuvantaignore", "*.pem");
+    await writeFile(tmpDir, "server.pem", "-----BEGIN CERTIFICATE-----");
+    await writeFile(tmpDir, "index.ts", "const x = 1;");
+    const result = await scanProject(tmpDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("index.ts");
+  });
+
+  it("ignores files matching *.key", async () => {
+    await writeFile(tmpDir, ".nuvantaignore", "*.key");
+    await writeFile(tmpDir, "private.key", "-----BEGIN PRIVATE KEY-----");
+    await writeFile(tmpDir, "index.ts", "const x = 1;");
+    const result = await scanProject(tmpDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("index.ts");
+  });
+
+  it("ignores files matching .env.* pattern", async () => {
+    await writeFile(tmpDir, ".nuvantaignore", ".env.*");
+    await writeFile(tmpDir, ".env.staging", "DB_PASS=secret");
+    await writeFile(tmpDir, "index.ts", "const x = 1;");
+    const result = await scanProject(tmpDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("index.ts");
+  });
+
+  it("ignores directories listed with trailing slash", async () => {
+    await writeFile(tmpDir, ".nuvantaignore", "private/");
+    await writeFile(tmpDir, "private/keys.ts", "const x = 1;");
+    await writeFile(tmpDir, "src/app.ts", "const y = 1;");
+    const result = await scanProject(tmpDir);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("app.ts");
+  });
+});
+
 // ─── secret detection ─────────────────────────────────────────────────────────
 
 describe("secret detection in scanner", () => {
