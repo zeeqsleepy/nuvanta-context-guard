@@ -1,47 +1,91 @@
 #!/usr/bin/env node
 
 // ─── Nuvanta Context Guard ────────────────────────────────────────────────────
-// CLI entry point. Defines the `scan` command and orchestrates the full pipeline:
-//   scanProject → secret filter → keyword scoring → AI scoring → select → report
+// CLI entry point. Defines the `scan` and `init` commands.
+//
+// Pipeline:
+//   loadConfig → scanProject → secret filter → keyword scoring
+//   → AI scoring → select → output
 
 import "dotenv/config";
 import { Command } from "commander";
 import fs from "fs/promises";
+import path from "path";
 
 import { scanProject } from "./scanner/index.js";
 import { extractKeywords, scoreFile, scoreContent } from "./relevance/index.js";
 import { selectFiles, type ScoredFile } from "./budget/index.js";
 import { printReport } from "./output/index.js";
 import { scoreFilesWithAI } from "./ai/index.js";
+import { loadConfig, resolveOptions, generateConfig } from "./config/index.js";
 
 const program = new Command();
 
 program
   .name("nuvanta")
   .description("AI context management for developer projects")
-  .version("0.1.0");
+  .version("0.1.2");
+
+// ─── init ─────────────────────────────────────────────────────────────────────
+// Generates a default nuvanta.config.json in the target directory.
+//
+// Usage:
+//   nuvanta init <path>
+//   nuvanta init .
+
+program
+  .command("init")
+  .description("Generate a nuvanta.config.json in the target directory")
+  .argument("[path]", "Path to the project directory", ".")
+  .action(async (dirPath) => {
+    try {
+      const resolved = path.resolve(dirPath);
+      const configPath = await generateConfig(resolved);
+      console.log(`\nCreated: ${configPath}\n`);
+    } catch (error) {
+      console.error(`\nError: ${(error as Error).message}\n`);
+      process.exit(1);
+    }
+  });
 
 // ─── scan ─────────────────────────────────────────────────────────────────────
 // Scans a project directory and returns the most relevant files for a given task
-// within a token budget.
+// within a token budget. CLI flags override nuvanta.config.json values.
 //
 // Usage:
-//   nuvanta scan <path> --task "..." --budget 10000
+//   nuvanta scan <path>
+//   nuvanta scan <path> --task "..." --budget 10000 --no-ai
 
 program
   .command("scan")
   .description("Scan a project and find relevant files for a task")
   .argument("<path>", "Path to the project directory")
   .option("--task <task>", "The task you are working on")
-  .option("--budget <number>", "Max token budget", "10000")
+  .option("--budget <number>", "Max token budget")
+  .option("--no-ai", "Skip Gemini AI scoring")
   .action(async (dirPath, options) => {
     try {
-      const budget = parseInt(options.budget);
+      const resolved = path.resolve(dirPath);
 
-      // step 1: scan all files
-      const files = await scanProject(dirPath);
+      // step 1: load config — CLI flags override
+      const config = await loadConfig(resolved);
+      const opts = resolveOptions(config, {
+        task: options.task,
+        budget: options.budget,
+        ai: options.ai,
+      });
 
-      // step 2: exclude files with hardcoded secrets
+      if (!opts.task) {
+        console.error(
+          '\nError: No task provided. Use --task "your task" or set "task" in nuvanta.config.json\n',
+        );
+        process.exit(1);
+      }
+
+      // step 2: scan all files
+      const files = await scanProject(resolved);
+
+      // step 3: exclude files with hardcoded secrets
       const safeFiles = [];
       for (const file of files) {
         if (file.secret && file.secret.length > 0) {
@@ -54,11 +98,19 @@ program
         }
       }
 
-      // step 3: keyword scoring
-      const keywords = extractKeywords(options.task);
+      // step 4: apply config ignore rules on top of .nuvantaignore
+      const configIgnore = new Set(opts.ignore);
+      const filteredFiles = safeFiles.filter((file) => {
+        const name = path.basename(file.path);
+        const ext = path.extname(file.path);
+        return !configIgnore.has(name) && !configIgnore.has(ext);
+      });
+
+      // step 5: keyword scoring
+      const keywords = extractKeywords(opts.task);
       const scored: ScoredFile[] = [];
 
-      for (const file of safeFiles) {
+      for (const file of filteredFiles) {
         const content = await fs.readFile(file.path, "utf-8");
 
         const fileResult = scoreFile(file.path, keywords);
@@ -76,10 +128,10 @@ program
 
       scored.sort((a, b) => b.score - a.score);
 
-      // step 4: AI scoring (Gemini)
-      if (scored.length > 0) {
+      // step 6: AI scoring (Gemini) — skipped if opts.ai is false
+      if (opts.ai && scored.length > 0) {
         const candidates = scored.map((f) => f.path);
-        const aiScores = await scoreFilesWithAI(options.task, candidates);
+        const aiScores = await scoreFilesWithAI(opts.task, candidates);
 
         for (const file of scored) {
           const aiScore = aiScores[file.path] ?? 0;
@@ -92,14 +144,14 @@ program
         scored.sort((a, b) => b.score - a.score);
       }
 
-      // step 5: select within token budget
-      const selected = selectFiles(scored, budget);
+      // step 7: select within token budget
+      const selected = selectFiles(scored, opts.budget);
 
-      // step 6: print report
+      // step 8: output
       printReport({
-        task: options.task,
+        task: opts.task,
         keywords,
-        budget,
+        budget: opts.budget,
         totalFiles: files.length,
         relevantFiles: scored.length,
         selected,
