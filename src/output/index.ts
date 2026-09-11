@@ -1,6 +1,10 @@
+// ─── Report Output ───────────────────────────────────────────────────────────
+// Formats and prints the final context report to stdout.
+// Shows selected files with scores, token usage, and reasons for selection.
+
 import { ScoredFile } from "../budget/index.js";
 
-export interface ReportData {
+export interface ReportOptions {
   task: string;
   keywords: string[];
   budget: number;
@@ -9,29 +13,45 @@ export interface ReportData {
   selected: ScoredFile[];
 }
 
-export function printReport(data: ReportData): void {
-  const totalTokens = data.selected.reduce((sum, f) => sum + f.tokens, 0);
-  const reduction = Math.round(
-    (1 - data.selected.length / data.totalFiles) * 100
+export function printReport(options: ReportOptions): void {
+  const { task, keywords, budget, totalFiles, relevantFiles, selected } =
+    options;
+
+  const divider = "─".repeat(48);
+  const header = "═".repeat(48);
+
+  console.log(`\n${header}`);
+  console.log(`  Nuvanta Context Guard`);
+  console.log(`${header}`);
+  console.log(`  Task     : ${task ?? "(none)"}`);
+  console.log(
+    `  Keywords : ${keywords.length > 0 ? keywords.join(", ") : "(none)"}`,
   );
+  console.log(`  Budget   : ${budget.toLocaleString()} tokens`);
+  console.log(`${divider}`);
+  console.log(`  Scanned  : ${totalFiles} files`);
+  console.log(`  Relevant : ${relevantFiles} files`);
+  console.log(`  Selected : ${selected.length} files`);
+  console.log(`${header}\n`);
 
-  console.log("\nNuvanta Context Guard");
-  console.log("─────────────────────────────────────\n");
-  console.log(`Task: ${data.task}`);
-  console.log(`Keywords: ${data.keywords.join(", ")}`);
-  console.log(`Budget: ${data.budget} tokens\n`);
-  console.log(`Files found: ${data.totalFiles}`);
-  console.log(`Relevant: ${data.relevantFiles}`);
-  console.log(`Selected: ${data.selected.length}`);
-  console.log(`Context used: ${totalTokens} / ${data.budget} tokens`);
-  console.log(`Reduction: ~${reduction}%\n`);
-  console.log("Selected files:");
-
-  for (const file of data.selected) {
-    const tokens = `${file.tokens} tokens`.padStart(12);
-    const score = `score ${file.score}`.padEnd(10);
-    console.log(` ${file.path.padEnd(35)} ${tokens} ${score}`);
+  if (selected.length === 0) {
+    console.log(`  No relevant files found.\n`);
+    return;
   }
 
-  console.log("");
+  for (const file of selected) {
+    console.log(`  ${file.path}`);
+    console.log(`    score   : ${file.score.toFixed(2)}`);
+    console.log(`    tokens  : ${file.tokens.toLocaleString()}`);
+    console.log(`    reason  : ${file.reason.join(" | ")}`);
+    console.log();
+  }
+
+  const used = selected.reduce((sum, f) => sum + f.tokens, 0);
+  console.log(`${divider}`);
+  console.log(
+    `  Tokens used : ${used.toLocaleString()} / ${budget.toLocaleString()}`,
+  );
+  console.log(`  Remaining   : ${(budget - used).toLocaleString()}`);
+  console.log(`${header}\n`);
 }

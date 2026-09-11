@@ -1,5 +1,10 @@
+// ─── Project Scanner ─────────────────────────────────────────────────────────
+// Recursively walks a directory, filters irrelevant files, and detects secrets.
+// Respects .nuvantaignore rules at the project root.
+
 import fs from "fs/promises";
 import path from "path";
+import { detectSecrets, type SecretMatch } from "../secrets/index.js";
 
 const IGNORED_DIRS = new Set([
   "node_modules",
@@ -9,6 +14,13 @@ const IGNORED_DIRS = new Set([
   "build",
   "coverage",
   ".cache",
+]);
+
+const IGNORED_FILES = new Set([
+  ".nuvantaignore",
+  ".gitignore",
+  ".prettierrc",
+  ".eslintrc",
 ]);
 
 const IGNORED_EXTENSIONS = new Set([
@@ -33,9 +45,29 @@ export interface FileInfo {
   extension: string;
   size: number;
   tokens: number;
+  secret?: SecretMatch[];
 }
 
-export async function scanDirectory(dirPath: string): Promise<FileInfo[]> {
+// Reads .nuvantaignore from project root and returns rules as a Set
+async function loadIgnoreRules(rootPath: string): Promise<Set<string>> {
+  const ignorePath = path.join(rootPath, ".nuvantaignore");
+  try {
+    const content = await fs.readFile(ignorePath, "utf-8");
+    const rules = content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith("#"));
+    return new Set(rules);
+  } catch {
+    return new Set();
+  }
+}
+
+// Recursively scans a directory, applying ignore rules and secret detection
+export async function scanDirectory(
+  dirPath: string,
+  ignoreRules: Set<string> = new Set(),
+): Promise<FileInfo[]> {
   const result: FileInfo[] = [];
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
@@ -44,20 +76,42 @@ export async function scanDirectory(dirPath: string): Promise<FileInfo[]> {
 
     if (entry.isDirectory()) {
       if (IGNORED_DIRS.has(entry.name)) continue;
-      const subFiles = await scanDirectory(fullPath);
-      result.push(...subFiles);
-    } else {
-      const ext = path.extname(entry.name);
-      if (IGNORED_EXTENSIONS.has(ext)) continue;
-      const stat = await fs.stat(fullPath);
-      result.push({
-        path: fullPath,
-        name: entry.name,
-        extension: path.extname(entry.name),
-        size: stat.size,
-        tokens: Math.round(stat.size / 4),
-      });
+      if (ignoreRules.has(entry.name)) continue;
+      result.push(...(await scanDirectory(fullPath, ignoreRules)));
+      continue;
     }
+
+    // file filtering
+    const ext = path.extname(entry.name);
+    if (IGNORED_FILES.has(entry.name)) continue;
+    if (IGNORED_EXTENSIONS.has(ext)) continue;
+    if (ignoreRules.has(entry.name)) continue;
+    if (ignoreRules.has(ext)) continue;
+
+    const stat = await fs.stat(fullPath);
+
+    // detect secrets — skip binary files silently
+    let secret: SecretMatch[] = [];
+    try {
+      const content = await fs.readFile(fullPath, "utf-8");
+      secret = detectSecrets(content);
+    } catch {}
+
+    result.push({
+      path: fullPath,
+      name: entry.name,
+      extension: ext,
+      size: stat.size,
+      tokens: Math.round(stat.size / 4),
+      secret,
+    });
   }
+
   return result;
+}
+
+// Entry point — loads ignore rules then scans from root
+export async function scanProject(rootPath: string): Promise<FileInfo[]> {
+  const ignoreRules = await loadIgnoreRules(rootPath);
+  return scanDirectory(rootPath, ignoreRules);
 }

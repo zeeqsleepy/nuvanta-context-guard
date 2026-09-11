@@ -1,3 +1,7 @@
+// ─── Relevance Scoring ───────────────────────────────────────────────────────
+// Scores files based on keyword matches in filename, directory path,
+// and file content. Returns a numeric score and a reason list.
+
 import path from "path";
 
 const STOP_WORDS = new Set([
@@ -15,39 +19,53 @@ const STOP_WORDS = new Set([
   "to",
 ]);
 
+// Strips stop words and lowercases the task string into keywords
 export function extractKeywords(task: string): string[] {
+  if (!task) return [];
   return task
     .toLowerCase()
     .split(" ")
-    .filter((word) => !STOP_WORDS.has(word));
+    .filter((word) => word.length > 0 && !STOP_WORDS.has(word));
 }
 
-export function scoreFile(filePath: string, keywords: string[]): number {
+export interface FileScore {
+  score: number;
+  reason: string[];
+}
+
+// Scores a file by matching keywords against its filename and directory path
+export function scoreFile(filePath: string, keywords: string[]): FileScore {
   const fileName = path.basename(filePath).toLowerCase();
   const dirName = path.dirname(filePath).toLowerCase();
+  const reason: string[] = [];
   let score = 0;
 
   for (const keyword of keywords) {
     if (fileName.includes(keyword)) {
       score += 1.0;
+      reason.push(`filename matches "${keyword}"`);
     }
     if (dirName.includes(keyword)) {
       score += 0.6;
+      reason.push(`directory matches "${keyword}"`);
     }
   }
 
-  return score;
+  return { score, reason };
 }
 
-export function scoreContent(content: string, keywords: string[]): number {
-  const normalizedContent = content.toLowerCase();
+// Scores a file by matching keywords against its content
+export function scoreContent(content: string, keywords: string[]): FileScore {
+  const normalized = content.toLowerCase();
+  const reason: string[] = [];
   let score = 0;
 
   for (const keyword of keywords) {
-    if (normalizedContent.includes(keyword)) {
+    if (normalized.includes(keyword)) {
       score += 0.5;
+      reason.push(`content contains "${keyword}"`);
     }
   }
 
-  return score;
+  return { score, reason };
 }
