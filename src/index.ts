@@ -62,6 +62,7 @@ program
   .argument("<path>", "Path to the project directory")
   .option("--task <task>", "The task you are working on")
   .option("--budget <number>", "Max token budget")
+  .option("--output <format>", "Output format: report, json, markdown")
   .option("--no-ai", "Skip Gemini AI scoring")
   .action(async (dirPath, options) => {
     try {
@@ -72,6 +73,7 @@ program
       const opts = resolveOptions(config, {
         task: options.task,
         budget: options.budget,
+        output: options.output,
         ai: options.ai,
       });
 
@@ -155,6 +157,7 @@ program
         totalFiles: files.length,
         relevantFiles: scored.length,
         selected,
+        format: opts.output,
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes("ENOENT")) {

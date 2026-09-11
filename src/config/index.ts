@@ -93,8 +93,15 @@ export async function loadConfig(projectRoot: string): Promise<NuvantaConfig> {
 // Merges config with CLI flags — CLI flags always win
 export function resolveOptions(
   config: NuvantaConfig,
-  cli: { task?: string; budget?: string; ai?: boolean },
+  cli: { task?: string; budget?: string; output?: string; ai?: boolean },
 ): Required<NuvantaConfig> {
+  const validOutputs = ["report", "json", "markdown"] as const;
+  const cliOutput = validOutputs.includes(
+    cli.output as (typeof validOutputs)[number],
+  )
+    ? (cli.output as NuvantaConfig["output"])
+    : undefined;
+
   return {
     task: cli.task ?? config.task ?? DEFAULTS.task,
     budget:
@@ -102,7 +109,7 @@ export function resolveOptions(
         ? parseInt(cli.budget)
         : (config.budget ?? DEFAULTS.budget),
     ignore: config.ignore ?? DEFAULTS.ignore,
-    output: config.output ?? DEFAULTS.output,
+    output: cliOutput ?? config.output ?? DEFAULTS.output,
     ai: cli.ai !== undefined ? cli.ai : (config.ai ?? DEFAULTS.ai),
   };
 }
