@@ -4,7 +4,8 @@
   "description": "A developer tool that identifies relevant project files for AI coding agents",
   "main": "dist/index.js",
   "bin": {
-    "nuvanta": "dist/index.js"
+    "nuvanta": "dist/index.js",
+    "nuvanta-mcp": "dist/mcp/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -18,7 +19,8 @@
     "ai",
     "context",
     "developer-tools",
-    "cli"
+    "cli",
+    "mcp"
   ],
   "author": "zeeqsleepy",
   "license": "MIT",
@@ -37,6 +39,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "commander": "^15.0.0",
     "dotenv": "^17.4.2"
   }
